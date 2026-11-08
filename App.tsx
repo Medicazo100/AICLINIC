@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { inject, track } from '@vercel/analytics';
 import { Section } from './constants';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -21,6 +22,16 @@ const App: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     // Mostrar de forma predeterminada el anuncio del Booster Clínico en cada recarga de página
     const [showBoosterAnnouncement, setShowBoosterAnnouncement] = useState(true);
+
+    // Inicializar analítica una sola vez
+    useEffect(() => {
+        inject();
+    }, []);
+
+    // Registrar cada módulo que el usuario abre (incluye el módulo inicial al cargar)
+    useEffect(() => {
+        track('module_open', { module: activeSection });
+    }, [activeSection]);
 
     const handleExploreBooster = () => {
         try {
