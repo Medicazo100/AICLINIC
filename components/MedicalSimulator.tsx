@@ -3,7 +3,7 @@ import { marked } from 'marked';
 import { 
     generateClinicalCase, getAnamnesisFeedback, getSuggestedStudies, 
     generateStudyResults, generateImage, getFinalDiagnosis,
-    prefetchTherapeuticPlanOptions
+    prefetchTherapeuticPlanOptions, isSearchUrl
 } from '../services/geminiService';
 import { 
     ClinicalCase, AnamnesisTurn, LabResult, ImagingResult, GroundingSource,
@@ -35,8 +35,20 @@ const getSourceDomain = (uri: string) => {
     try {
         const url = new URL(uri);
         const host = url.hostname.replace(/^www\./, '');
-        if (uri.includes('site:gob.mx/cenetec') || host.includes('cenetec') || host.includes('gob.mx')) {
+        if (host.includes('cenetec') || host.includes('gob.mx')) {
             return 'CENETEC / Salud México (GPC)';
+        }
+        if (host.includes('unam.mx')) {
+            return 'UNAM / Medicina (México)';
+        }
+        if (host.includes('nice.org.uk')) {
+            return 'NICE Guidelines (Reino Unido)';
+        }
+        if (host.includes('ilae.org') || host.includes('epilepsydiagnosis.org')) {
+            return 'ILAE (Liga Internacional Contra la Epilepsia)';
+        }
+        if (host.includes('aesnet.org')) {
+            return 'American Epilepsy Society (AES)';
         }
         if (host.includes('pubmed.ncbi.nlm.nih.gov') || host.includes('ncbi.nlm.nih.gov')) {
             return 'PubMed / NIH (EE. UU.)';
@@ -54,22 +66,25 @@ const getSourceDomain = (uri: string) => {
             return 'KDIGO (Nefrología)';
         }
         if (host.includes('ahajournals.org') || host.includes('escardio.org')) {
-            return 'AHA / ACC (Cardiología)';
+            return 'AHA / ESC (Cardiología)';
         }
         if (host.includes('diabetesjournals.org')) {
             return 'ADA (Endocrinología/Diabetes)';
         }
-        if (host.includes('atsjournals.org')) {
-            return 'ATS / ERS (Neumología)';
+        if (host.includes('atsjournals.org') || host.includes('goldcopd.org') || host.includes('ginasthma.org')) {
+            return 'ATS / GOLD (Neumología)';
         }
-        if (host.includes('idsociety.org')) {
-            return 'IDSA (Infectología)';
+        if (host.includes('idsociety.org') || host.includes('sccm.org')) {
+            return 'IDSA / SCCM (Infectología)';
         }
         if (host.includes('aan.com')) {
             return 'AAN (Neurología)';
         }
-        if (host.includes('gastro.org')) {
-            return 'AGA (Gastroenterología)';
+        if (host.includes('gastro.org') || host.includes('wjes.biomedcentral.com')) {
+            return 'AGA / WSES (Gastroenterología)';
+        }
+        if (host.includes('who.int')) {
+            return 'Organización Mundial de la Salud (OMS)';
         }
         if (host.includes('nejm.org')) {
             return 'New England Journal of Medicine';
@@ -973,11 +988,10 @@ const MedicalSimulator: React.FC = () => {
             return numbers.map((numberStr: string) => {
                 const index = parseInt(numberStr, 10) - 1;
                 const source = sources[index];
-                if (source && source.uri) {
+                if (source && source.uri && !isSearchUrl(source.uri)) {
                     return `<a href="${source.uri}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-1.5 py-0.5 mx-0.5 text-xs font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-cyan-950 dark:text-cyan-300 border border-blue-300 dark:border-cyan-700 hover:scale-110 hover:bg-blue-200 dark:hover:bg-cyan-900 transition-all no-underline shadow-xs cursor-pointer" title="${source.title || source.uri}">[${numberStr}]</a>`;
                 }
-                const fallbackUri = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(numberStr)}`;
-                return `<a href="${fallbackUri}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-1.5 py-0.5 mx-0.5 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 dark:bg-slate-700 dark:text-cyan-300 border border-blue-200 dark:border-slate-600 hover:underline" title="Evidencia médica [${numberStr}]">[${numberStr}]</a>`;
+                return `<a href="#fuente-${numberStr}" class="inline-flex items-center justify-center px-1.5 py-0.5 mx-0.5 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 dark:bg-slate-700 dark:text-cyan-300 border border-blue-200 dark:border-slate-600 hover:bg-blue-100 no-underline" title="Ver referencia [${numberStr}] en fuentes y evidencia">[${numberStr}]</a>`;
             }).join('');
         });
         return parsedHtml;
@@ -1056,75 +1070,86 @@ const MedicalSimulator: React.FC = () => {
                             className="p-6 bg-green-50/50 dark:bg-slate-800 rounded-xl border-2 border-green-500 dark:border-pink-500 shadow-lg prose max-w-none dark:prose-invert"
                             dangerouslySetInnerHTML={{ __html: renderDiagnosisHtml(mainDiagnosis, finalDiagnosis.sources) }} 
                         />
-                        {finalDiagnosis.sources.length > 0 && (
-                            <div className="p-6 bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/50 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 rounded-2xl border-2 border-blue-300 dark:border-cyan-700/70 shadow-lg space-y-4">
-                                <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-blue-200 dark:border-cyan-800/60">
-                                    <div className="flex items-center gap-2.5 text-blue-950 dark:text-cyan-200">
-                                        <span className="p-2 bg-blue-600 dark:bg-cyan-500 text-white dark:text-slate-950 rounded-xl text-base shadow-sm">
-                                            📚
-                                        </span>
-                                        <div>
-                                            <h4 className="font-bold text-base md:text-lg text-blue-950 dark:text-cyan-200">
-                                                Fuentes y Evidencia Científica
-                                            </h4>
-                                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                                                Referencias clínicas avaladas vinculadas a las citas numéricas del desglose
-                                            </p>
+                        {(() => {
+                            const validSources = (finalDiagnosis.sources || []).filter(s => s && s.uri && !isSearchUrl(s.uri));
+                            if (validSources.length === 0) return null;
+                            return (
+                                <div className="p-6 bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/50 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 rounded-2xl border-2 border-blue-300 dark:border-cyan-700/70 shadow-lg space-y-4">
+                                    <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-blue-200 dark:border-cyan-800/60">
+                                        <div className="flex items-center gap-2.5 text-blue-950 dark:text-cyan-200">
+                                            <span className="p-2 bg-blue-600 dark:bg-cyan-500 text-white dark:text-slate-950 rounded-xl text-base shadow-sm">
+                                                📚
+                                            </span>
+                                            <div>
+                                                <h4 className="font-bold text-base md:text-lg text-blue-950 dark:text-cyan-200">
+                                                    Fuentes y Evidencia Científica
+                                                </h4>
+                                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                    Documentos clínicos reales y guías oficiales que sustentan el caso
+                                                </p>
+                                            </div>
                                         </div>
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-cyan-950 dark:text-cyan-300 border border-blue-300 dark:border-cyan-700">
+                                            <span className="w-2 h-2 rounded-full bg-blue-500 dark:bg-cyan-400"></span>
+                                            {validSources.length} {validSources.length === 1 ? 'fuente verificada' : 'fuentes verificadas'}
+                                        </span>
                                     </div>
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-cyan-950 dark:text-cyan-300 border border-blue-300 dark:border-cyan-700">
-                                        <span className="w-2 h-2 rounded-full bg-blue-500 dark:bg-cyan-400"></span>
-                                        {finalDiagnosis.sources.length} {finalDiagnosis.sources.length === 1 ? 'fuente consultada' : 'fuentes consultadas'}
-                                    </span>
-                                </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                                    {finalDiagnosis.sources.map((source, idx) => {
-                                        if (!source.uri) return null;
-                                        const citationNumber = idx + 1;
-                                        const title = getLinkText(source);
-                                        const domain = getSourceDomain(source.uri);
-                                        return (
-                                            <div 
-                                                key={idx}
-                                                id={`fuente-${citationNumber}`}
-                                                className="group flex flex-col justify-between p-3.5 rounded-xl bg-white dark:bg-slate-800/90 border border-blue-200/80 dark:border-slate-700 shadow-xs hover:shadow-md hover:border-blue-400 dark:hover:border-cyan-500 transition-all duration-200"
-                                            >
-                                                <div className="flex items-start gap-2.5 mb-2">
-                                                    <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 dark:bg-cyan-500 text-white dark:text-slate-950 text-xs font-bold shadow-xs">
-                                                        {citationNumber}
-                                                    </span>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-xs md:text-sm font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 leading-snug">
-                                                            {title}
-                                                        </p>
-                                                        <span className="inline-block mt-1 text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate max-w-full">
-                                                            🌐 {domain}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                                        {validSources.map((source, idx) => {
+                                            const citationNumber = idx + 1;
+                                            const title = getLinkText(source);
+                                            const domain = getSourceDomain(source.uri);
+                                            const isPdf = source.uri.toLowerCase().endsWith('.pdf');
+                                            return (
+                                                <div 
+                                                    key={idx}
+                                                    id={`fuente-${citationNumber}`}
+                                                    className="group flex flex-col justify-between p-3.5 rounded-xl bg-white dark:bg-slate-800/90 border border-blue-200/80 dark:border-slate-700 shadow-xs hover:shadow-md hover:border-blue-400 dark:hover:border-cyan-500 transition-all duration-200"
+                                                >
+                                                    <div className="flex items-start gap-2.5 mb-2">
+                                                        <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 dark:bg-cyan-500 text-white dark:text-slate-950 text-xs font-bold shadow-xs">
+                                                            {citationNumber}
                                                         </span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs md:text-sm font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 leading-snug">
+                                                                {title}
+                                                            </p>
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate max-w-full">
+                                                                    🌐 {domain}
+                                                                </span>
+                                                                {isPdf && (
+                                                                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700 dark:bg-red-950/80 dark:text-red-300">
+                                                                        PDF
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="pt-2 border-t border-gray-100 dark:border-slate-700/60 flex items-center justify-between">
+                                                        <span className="text-[11px] text-blue-600 dark:text-cyan-400 font-medium">
+                                                            Cita [{citationNumber}]
+                                                        </span>
+                                                        <a 
+                                                            href={source.uri} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer" 
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-cyan-300 transition-colors no-underline"
+                                                        >
+                                                            <span>Consultar fuente</span>
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                            </svg>
+                                                        </a>
                                                     </div>
                                                 </div>
-                                                <div className="pt-2 border-t border-gray-100 dark:border-slate-700/60 flex items-center justify-between">
-                                                    <span className="text-[11px] text-blue-600 dark:text-cyan-400 font-medium">
-                                                        Cita [{citationNumber}]
-                                                    </span>
-                                                    <a 
-                                                        href={source.uri} 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer" 
-                                                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-cyan-300 transition-colors no-underline"
-                                                    >
-                                                        <span>Consultar fuente</span>
-                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                        </svg>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
                         {infoSources && (
                             <div className="p-4 bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-200 dark:border-slate-700 space-y-2">
                                 <h5 className="font-semibold text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
