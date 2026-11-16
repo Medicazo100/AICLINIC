@@ -638,7 +638,7 @@ export const TRUSTED_MEDICAL_DOMAINS = [
     'aafp.org', 'acpjournals.org', 'gastro.org', 'idsociety.org', 'aan.com', 'chestnet.org',
     'atsjournals.org', 'goldcopd.org', 'ginasthma.org', 'sccm.org', 'wjes.biomedcentral.com',
     'nice.org.uk', 'ilae.org', 'epilepsydiagnosis.org', 'aesnet.org',
-    'era-online.org', 'eso-stroke.org', 'endocrine.org',
+    'era-online.org', 'eso-stroke.org', 'endocrine.org', 'revistainfectio.org',
     'elsevier.com', 'elsevier.es', 'springer.com', 'nature.com', 'medlineplus.gov'
 ];
 
@@ -851,37 +851,113 @@ export function buildPrecisionMedicalSources(condition: string, context: string 
         ];
     }
 
-    // 5. NEUMOLOGÍA / NEUMONÍA / EPOC / ASMA
-    if (/neumon[ií]a|epoc|asma|pulmonar|bronquial|insuficiencia respiratoria|derrame pleural/i.test(condLower)) {
+    // 5. NEUMOLOGÍA / NEUMONÍA ADQUIRIDA EN LA COMUNIDAD (NAC) / BRONCONEUMONÍA
+    // Separada estrictamente de EPOC y Asma para evitar contaminación cruzada de guías
+    if (/neumon[ií]a|\bnac\b|bronconeumon[ií]a|consolidaci[oó]n pulmonar|foco neum[oó]nico|infiltrado alveolar/i.test(condLower) ||
+        (/infiltrado alveolar|condensaci[oó]n pulmonar|consolidaci[oó]n/i.test(contextLower) && !/epoc|asma/i.test(condLower))) {
         return [
-            {
-                title: 'Guía de Práctica Clínica CENETEC (Sector Salud México): Neumonía Adquirida en la Comunidad en el Adulto',
-                uri: 'https://www.gob.mx/salud/dgmoss'
-            },
             {
                 title: 'ATS/IDSA Guideline: Diagnosis and Treatment of Adults with Community-acquired Pneumonia (PubMed PMID: 31573350)',
                 uri: 'https://pubmed.ncbi.nlm.nih.gov/31573350/'
             },
             {
-                title: 'GOLD Global Strategy for Prevention, Diagnosis and Management of COPD',
-                uri: 'https://goldcopd.org/2024-gold-report/'
+                title: 'NICE Guideline NG250: Pneumonia (community-acquired): antimicrobial prescribing',
+                uri: 'https://www.nice.org.uk/guidance/ng250'
             },
             {
-                title: 'GINA Global Strategy for Asthma Management and Prevention',
-                uri: 'https://ginasthma.org/reports/'
+                title: 'StatPearls: Community-Acquired Pneumonia (NCBI Bookshelf NBK430749)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK430749/'
+            },
+            {
+                title: 'Guía de Práctica Clínica para el diagnóstico y tratamiento de la neumonía adquirida en la comunidad (Infectio 2026; Varón-Vega et al.)',
+                uri: 'https://www.revistainfectio.org/P_OJS/index.php/infectio/article/download/1293/1454/4411'
+            },
+            {
+                title: 'Cochrane Database of Systematic Reviews: Antibiotics for community-acquired pneumonia in adult outpatients (CD002109)',
+                uri: 'https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD002109.pub5/full'
             },
             {
                 title: 'NICE Guideline NG138: Pneumonia in adults: diagnosis and management',
                 uri: 'https://www.nice.org.uk/guidance/ng138'
-            },
-            {
-                title: 'Cochrane Library: Evidence-Based Systematic Reviews for Respiratory Diseases',
-                uri: 'https://www.cochranelibrary.com'
             }
         ];
     }
 
-    // 6. INFECTOLOGÍA / SEPSIS / CHOQUE SÉPTICO / MENINGITIS
+    // 6. NEUMOLOGÍA / ENFERMEDAD PULMONAR OBSTRUCTIVA CRÓNICA (EPOC)
+    if (/\bepoc\b|enfermedad pulmonar obstructiva cr[oó]nica|bronquitis cr[oó]nica|enfisema pulmonar|exacerbaci[oó]n.*epoc/i.test(condLower)) {
+        return [
+            {
+                title: 'GOLD Global Strategy for Prevention, Diagnosis and Management of COPD (2024 Report)',
+                uri: 'https://goldcopd.org/2024-gold-report/'
+            },
+            {
+                title: 'ATS/ERS Guidelines on Management of COPD (PubMed PMID: 32354707)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/32354707/'
+            },
+            {
+                title: 'NICE Guideline NG115: Chronic obstructive pulmonary disease in over 16s: diagnosis and management',
+                uri: 'https://www.nice.org.uk/guidance/ng115'
+            },
+            {
+                title: 'StatPearls: Chronic Obstructive Pulmonary Disease (NCBI Bookshelf NBK559281)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK559281/'
+            },
+            {
+                title: 'GesEPOC: Guía Española de la Enfermedad Pulmonar Obstructiva Crónica (PubMed PMID: 35465977)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/35465977/'
+            }
+        ];
+    }
+
+    // 7. NEUMOLOGÍA / ASMA BRONQUIAL / CRISIS ASMÁTICA
+    if (/\basma\b|crisis asm[aá]tica|status asthmaticus|broncoespasmo|hiperreactividad bronquial/i.test(condLower)) {
+        return [
+            {
+                title: 'GINA Global Strategy for Asthma Management and Prevention (Executive Summary / PubMed PMID: 37454023)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/37454023/'
+            },
+            {
+                title: 'NICE Guideline NG80: Asthma: diagnosis, monitoring and chronic asthma management',
+                uri: 'https://www.nice.org.uk/guidance/ng80'
+            },
+            {
+                title: 'StatPearls: Asthma (NCBI Bookshelf NBK430901)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK430901/'
+            },
+            {
+                title: 'International ERS/ATS Guidelines on Management of Severe Asthma (PubMed PMID: 31857248)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/31857248/'
+            },
+            {
+                title: 'GEMA 5.3: Guía Española para el Manejo del Asma (PubMed PMID: 37270425)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/37270425/'
+            }
+        ];
+    }
+
+    // 8. OTRAS AFECCIONES RESPIRATORIAS / NEUMOLOGÍA GENERAL
+    if (/pulmonar|bronquial|insuficiencia respiratoria|derrame pleural/i.test(condLower)) {
+        return [
+            {
+                title: 'American Thoracic Society (ATS) Documents & Clinical Practice Guidelines',
+                uri: 'https://www.atsjournals.org'
+            },
+            {
+                title: 'CHEST Guidelines and Expert Panel Reports',
+                uri: 'https://www.chestnet.org'
+            },
+            {
+                title: 'StatPearls: Pleural Effusion (NCBI Bookshelf NBK448189)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK448189/'
+            },
+            {
+                title: 'NICE Clinical Guidelines: Respiratory conditions',
+                uri: 'https://www.nice.org.uk/guidance/conditions-and-diseases/respiratory-conditions'
+            }
+        ];
+    }
+
+    // 9. INFECTOLOGÍA / SEPSIS / CHOQUE SÉPTICO / MENINGITIS
     if (/sepsis|s[eé]ptico|choque s[eé]ptico|bacteriemia|meningitis|meningoencefalitis/i.test(condLower)) {
         return [
             {
@@ -911,7 +987,7 @@ export function buildPrecisionMedicalSources(condition: string, context: string 
         ];
     }
 
-    // 7. GASTROENTEROLOGÍA / CIRUGÍA / ABDOMEN AGUDO / APENDICITIS / COLECISTITIS / PANCREATITIS
+    // 10. GASTROENTEROLOGÍA / CIRUGÍA / ABDOMEN AGUDO / APENDICITIS / COLECISTITIS / PANCREATITIS
     if (/apendic|colecist|pancreat|abdomen agudo|peritonitis|obstrucci[oó]n intestinal/i.test(condLower)) {
         return [
             {
@@ -941,7 +1017,7 @@ export function buildPrecisionMedicalSources(condition: string, context: string 
         ];
     }
 
-    // 8. NEFROLOGÍA / LESIÓN RENAL AGUDA / HIPERPOTASEMIA / ERC
+    // 11. NEFROLOGÍA / LESIÓN RENAL AGUDA / HIPERPOTASEMIA / ERC
     if (/renal|riñ[oó]n|kdigo|glomerulo|creatinina|di[aá]lisis|nefro|lra\b|aki\b|hiperpotasemia|hiperkalemia/i.test(condLower)) {
         return [
             {
@@ -971,7 +1047,7 @@ export function buildPrecisionMedicalSources(condition: string, context: string 
         ];
     }
 
-    // 9. RESPALDO GENERAL VERIFICADO (Documentos y portales oficiales de primer nivel, sin URLs de búsqueda)
+    // 12. RESPALDO GENERAL VERIFICADO (Documentos y portales oficiales de primer nivel, sin URLs de búsqueda)
     return [
         {
             title: `Catálogo Maestro de Guías de Práctica Clínica CENETEC (Sector Salud México): ${cleanTopic}`,
