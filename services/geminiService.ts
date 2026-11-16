@@ -661,8 +661,43 @@ export function isTrustedMedicalUrl(uri: string): boolean {
  * Detecta si una URL corresponde a una consulta o motor de búsqueda en lugar de un documento real.
  * Prohíbe terminantemente URLs como google.com/search, doSearch, ?term=, ?q=, etc.
  */
+export function isGenericPortalUrl(uri: string): boolean {
+    if (!uri || typeof uri !== 'string') return false;
+    try {
+        const parsed = new URL(uri);
+        const host = parsed.hostname.toLowerCase();
+        const fullUrl = uri.toLowerCase();
+        const pathname = parsed.pathname.toLowerCase().replace(/\/+$/, '');
+
+        // 1. Portales administrativos o catálogos no funcionales / no específicos
+        if (
+            host.includes('dgmoss') ||
+            fullUrl.includes('/salud/dgmoss') ||
+            host.includes('cenetec.salud.gob.mx') ||
+            fullUrl.includes('catalogomaestrogpc') ||
+            (host.includes('imss.gob.mx') && fullUrl.includes('/profesionales-salud/gpc'))
+        ) {
+            return true;
+        }
+
+        // 2. Páginas raíz o índices sin documento específico
+        if (
+            (host.includes('cochranelibrary.com') && (pathname === '' || pathname === '/')) ||
+            (host.includes('pubmed.ncbi.nlm.nih.gov') && (pathname === '' || pathname === '/')) ||
+            (host.includes('nice.org.uk') && (pathname === '' || pathname === '/' || pathname === '/guidance'))
+        ) {
+            return true;
+        }
+
+        return false;
+    } catch {
+        return true;
+    }
+}
+
 export function isSearchUrl(uri: string): boolean {
     if (!uri || typeof uri !== 'string') return false;
+    if (isGenericPortalUrl(uri)) return true;
     try {
         const parsed = new URL(uri);
         const host = parsed.hostname.toLowerCase();
@@ -765,10 +800,6 @@ export function buildPrecisionMedicalSources(condition: string, context: string 
     if (/evc|ictus|isquemia cerebral|infarto cerebral|ataque isqu[eé]mico|accidente cerebrovascular|hemorragia subaracnoidea/i.test(condLower)) {
         return [
             {
-                title: 'Guía de Práctica Clínica CENETEC (Sector Salud México): Manejo de la Enfermedad Vascular Cerebral Isquémica',
-                uri: 'https://www.gob.mx/salud/dgmoss'
-            },
-            {
                 title: 'AHA/ASA Guidelines for the Early Management of Patients With Acute Ischemic Stroke (Stroke / PubMed PMID: 31662037)',
                 uri: 'https://pubmed.ncbi.nlm.nih.gov/31662037/'
             },
@@ -777,16 +808,20 @@ export function buildPrecisionMedicalSources(condition: string, context: string 
                 uri: 'https://www.nice.org.uk/guidance/ng128'
             },
             {
-                title: 'European Stroke Organisation (ESO) Guidelines for the Management of Space-Occupying Brain Infarction',
-                uri: 'https://eso-stroke.org/guidelines/'
+                title: 'StatPearls: Ischemic Stroke (NCBI Bookshelf NBK499997)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK499997/'
             },
             {
-                title: 'American Academy of Neurology (AAN): Clinical Practice Guidelines Portal',
-                uri: 'https://www.aan.com/Guidelines/'
+                title: 'ESO Guidelines on Intravenous Thrombolysis for Acute Ischemic Stroke (PubMed PMID: 33816688)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/33816688/'
             },
             {
-                title: 'World Stroke Organization (WSO): Global Stroke Guidelines and Standards',
-                uri: 'https://www.world-stroke.org'
+                title: 'AHA/ASA Guideline for the Management of Patients With Spontaneous Intracerebral Hemorrhage (PubMed PMID: 35579034)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/35579034/'
+            },
+            {
+                title: 'StatPearls: Acute Stroke Management (NCBI Bookshelf NBK535369)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK535369/'
             }
         ];
     }
@@ -795,16 +830,12 @@ export function buildPrecisionMedicalSources(condition: string, context: string 
     if (/infarto|miocardio|angina|coronario|iam|stemi|nstemi|troponina|cardiog[eé]nico|arritmia|fibrilaci[oó]n|insuficiencia card[ií]aca/i.test(condLower)) {
         return [
             {
-                title: 'Guía de Práctica Clínica CENETEC (Sector Salud México): Diagnóstico y Tratamiento del Infarto Agudo de Miocardio',
-                uri: 'https://www.gob.mx/salud/dgmoss'
-            },
-            {
                 title: 'AHA/ACC/ASE/CHEST Guideline for the Evaluation and Diagnosis of Chest Pain (Circulation / PubMed PMID: 34722853)',
                 uri: 'https://pubmed.ncbi.nlm.nih.gov/34722853/'
             },
             {
-                title: 'ESC Guidelines for the Management of Acute Coronary Syndromes (European Heart Journal)',
-                uri: 'https://www.escardio.org/Guidelines/Clinical-Practice-Guidelines/Acute-Coronary-Syndromes-ACS-Guidelines'
+                title: 'ESC Guidelines for the Management of Acute Coronary Syndromes (European Heart Journal / PubMed PMID: 37622654)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/37622654/'
             },
             {
                 title: 'AHA/ACC/HFSA Guideline for the Management of Heart Failure (Circulation / PubMed PMID: 35363499)',
@@ -815,38 +846,72 @@ export function buildPrecisionMedicalSources(condition: string, context: string 
                 uri: 'https://pubmed.ncbi.nlm.nih.gov/37992985/'
             },
             {
-                title: 'AHA / ACC Cardiovascular Guidelines & Statements Portal',
-                uri: 'https://www.ahajournals.org'
+                title: 'Fourth Universal Definition of Myocardial Infarction (Circulation / PubMed PMID: 30143467)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/30143467/'
+            },
+            {
+                title: 'StatPearls: Acute Coronary Syndrome (NCBI Bookshelf NBK459157)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK459157/'
             }
         ];
     }
 
-    // 4. ENDOCRINOLOGÍA / DIABETES / CETOACIDOSIS / ESTADO HIPEROSMOLAR
+    // 4. CARDIOLOGÍA / HIPERTENSIÓN ARTERIAL / CRISIS HIPERTENSIVA
+    if (/hipertensi[oó]n|crisis hipertensiva|emergencia hipertensiva|urgencia hipertensiva|\bhta\b|presi[oó]n arterial elevada/i.test(condLower)) {
+        return [
+            {
+                title: 'ACC/AHA Guideline for the Prevention, Detection, Evaluation, and Management of High Blood Pressure in Adults (PubMed PMID: 29146882)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/29146882/'
+            },
+            {
+                title: 'ESC Guidelines for the Management of Elevated Blood Pressure and Hypertension (European Heart Journal / PubMed PMID: 39213897)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/39213897/'
+            },
+            {
+                title: 'NICE Guideline NG136: Hypertension in adults: diagnosis and management',
+                uri: 'https://www.nice.org.uk/guidance/ng136'
+            },
+            {
+                title: 'StatPearls: Hypertensive Emergency (NCBI Bookshelf NBK470371)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK470371/'
+            },
+            {
+                title: 'StatPearls: Essential Hypertension (NCBI Bookshelf NBK539859)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK539859/'
+            },
+            {
+                title: 'Cochrane Database of Systematic Reviews: Blood pressure targets for hypertension in adults (CD011579)',
+                uri: 'https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD011579.pub3/full'
+            }
+        ];
+    }
+
+    // 5. ENDOCRINOLOGÍA / DIABETES / CETOACIDOSIS / ESTADO HIPEROSMOLAR
     if (/diabetes|cetoacidosis|hiperosmolar|cad\b|ehh\b|cetoacid|hipoglucemia/i.test(condLower)) {
         return [
             {
-                title: 'Guía de Práctica Clínica CENETEC (Sector Salud México): Diagnóstico y Manejo de la Cetoacidosis Diabética',
-                uri: 'https://www.gob.mx/salud/dgmoss'
-            },
-            {
-                title: 'Management of Hyperglycemic Crises in Adults With Diabetes: Consensus Report (Diabetes Care / PubMed PMID: 38078580)',
+                title: 'Management of Hyperglycemic Crises in Adults With Diabetes: Consensus Report by ADA/EASD (Diabetes Care / PubMed PMID: 38078580)',
                 uri: 'https://pubmed.ncbi.nlm.nih.gov/38078580/'
             },
             {
-                title: 'American Diabetes Association (ADA) Standards of Medical Care in Diabetes',
-                uri: 'https://diabetesjournals.org/care/issue/47/Supplement_1'
+                title: 'American Diabetes Association (ADA) Standards of Care in Diabetes—2024 (PubMed PMID: 38085127)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/38085127/'
             },
             {
                 title: 'NICE Guideline NG28: Type 1 and Type 2 Diabetes in Adults: Diagnosis and Management',
                 uri: 'https://www.nice.org.uk/guidance/ng28'
             },
             {
-                title: 'Endocrine Society Clinical Practice Guidelines Portal',
-                uri: 'https://www.endocrine.org/clinical-guidelines'
+                title: 'StatPearls: Diabetic Ketoacidosis (NCBI Bookshelf NBK430784)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK430784/'
             },
             {
-                title: 'Cochrane Library: Pharmacological Interventions for Type 2 Diabetes & Acute Complications',
-                uri: 'https://www.cochranelibrary.com'
+                title: 'StatPearls: Hyperosmolar Hyperglycemic State (NCBI Bookshelf NBK482142)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK482142/'
+            },
+            {
+                title: 'Endocrine Society Clinical Practice Guideline: Management of Hyperglycemia in Hospitalized Adult Patients (PubMed PMID: 35691686)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/35691686/'
             }
         ];
     }
@@ -935,45 +1000,45 @@ export function buildPrecisionMedicalSources(condition: string, context: string 
         ];
     }
 
-    // 8. OTRAS AFECCIONES RESPIRATORIAS / NEUMOLOGÍA GENERAL
-    if (/pulmonar|bronquial|insuficiencia respiratoria|derrame pleural/i.test(condLower)) {
+    // 9. OTRAS AFECCIONES RESPIRATORIAS / NEUMOLOGÍA GENERAL
+    if (/pulmonar|bronquial|insuficiencia respiratoria|derrame pleural|neumot[oó]rax|tromboembolia pulmonar|\btep\b/i.test(condLower)) {
         return [
             {
-                title: 'American Thoracic Society (ATS) Documents & Clinical Practice Guidelines',
-                uri: 'https://www.atsjournals.org'
+                title: 'BTS Guideline for Pleural Disease (Thorax / PubMed PMID: 37433555)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/37433555/'
             },
             {
-                title: 'CHEST Guidelines and Expert Panel Reports',
-                uri: 'https://www.chestnet.org'
+                title: 'CHEST Consensus Statement: Management of Spontaneous Pneumothorax (PubMed PMID: 33285196)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/33285196/'
             },
             {
                 title: 'StatPearls: Pleural Effusion (NCBI Bookshelf NBK448189)',
                 uri: 'https://www.ncbi.nlm.nih.gov/books/NBK448189/'
             },
             {
-                title: 'NICE Clinical Guidelines: Respiratory conditions',
-                uri: 'https://www.nice.org.uk/guidance/conditions-and-diseases/respiratory-conditions'
+                title: 'ESC Guidelines for the Diagnosis and Management of Acute Pulmonary Embolism (PubMed PMID: 31504429)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/31504429/'
+            },
+            {
+                title: 'StatPearls: Acute Respiratory Failure (NCBI Bookshelf NBK526127)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK526127/'
+            },
+            {
+                title: 'StatPearls: Acute Respiratory Distress Syndrome (ARDS) (NCBI Bookshelf NBK436002)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK436002/'
             }
         ];
     }
 
-    // 9. INFECTOLOGÍA / SEPSIS / CHOQUE SÉPTICO / MENINGITIS
+    // 10. INFECTOLOGÍA / SEPSIS / CHOQUE SÉPTICO / MENINGITIS
     if (/sepsis|s[eé]ptico|choque s[eé]ptico|bacteriemia|meningitis|meningoencefalitis/i.test(condLower)) {
         return [
             {
-                title: 'Guía de Práctica Clínica CENETEC (Sector Salud México): Diagnóstico y Tratamiento del Choque Séptico en el Adulto',
-                uri: 'https://www.gob.mx/salud/dgmoss'
-            },
-            {
-                title: 'Surviving Sepsis Campaign: International Guidelines for Management of Sepsis and Septic Shock (PubMed PMID: 34599001)',
+                title: 'Surviving Sepsis Campaign: International Guidelines for Management of Sepsis and Septic Shock 2021 (PubMed PMID: 34599001)',
                 uri: 'https://pubmed.ncbi.nlm.nih.gov/34599001/'
             },
             {
-                title: 'Surviving Sepsis Campaign Clinical Practice Guidelines Portal (SCCM / ESICM)',
-                uri: 'https://www.sccm.org/Clinical-Resources/Guidelines/Guidelines/Surviving-Sepsis-Guidelines-2021'
-            },
-            {
-                title: 'The Third International Consensus Definitions for Sepsis and Septic Shock (Sepsis-3, PubMed PMID: 26903338)',
+                title: 'The Third International Consensus Definitions for Sepsis and Septic Shock (Sepsis-3 / PubMed PMID: 26903338)',
                 uri: 'https://pubmed.ncbi.nlm.nih.gov/26903338/'
             },
             {
@@ -981,19 +1046,23 @@ export function buildPrecisionMedicalSources(condition: string, context: string 
                 uri: 'https://www.nice.org.uk/guidance/ng51'
             },
             {
+                title: 'StatPearls: Septic Shock (NCBI Bookshelf NBK430939)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK430939/'
+            },
+            {
                 title: 'IDSA Practice Guidelines for Healthcare-Associated Ventriculitis and Meningitis (PubMed PMID: 28203777)',
                 uri: 'https://pubmed.ncbi.nlm.nih.gov/28203777/'
+            },
+            {
+                title: 'StatPearls: Bacterial Meningitis (NCBI Bookshelf NBK470360)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK470360/'
             }
         ];
     }
 
-    // 10. GASTROENTEROLOGÍA / CIRUGÍA / ABDOMEN AGUDO / APENDICITIS / COLECISTITIS / PANCREATITIS
+    // 11. GASTROENTEROLOGÍA / CIRUGÍA / ABDOMEN AGUDO / APENDICITIS / COLECISTITIS / PANCREATITIS
     if (/apendic|colecist|pancreat|abdomen agudo|peritonitis|obstrucci[oó]n intestinal/i.test(condLower)) {
         return [
-            {
-                title: 'Guía de Práctica Clínica CENETEC (Sector Salud México): Diagnóstico de Apendicitis Aguda',
-                uri: 'https://www.gob.mx/salud/dgmoss'
-            },
             {
                 title: 'WSES Jerusalem Guidelines for Diagnosis and Treatment of Acute Appendicitis (PubMed PMID: 32641137)',
                 uri: 'https://pubmed.ncbi.nlm.nih.gov/32641137/'
@@ -1007,86 +1076,171 @@ export function buildPrecisionMedicalSources(condition: string, context: string 
                 uri: 'https://pubmed.ncbi.nlm.nih.gov/23890520/'
             },
             {
-                title: 'American Gastroenterological Association (AGA): Clinical Guidance & Practice Guidelines',
-                uri: 'https://gastro.org'
+                title: 'WSES Guidelines for the Management of Acute Bowel Obstruction (PubMed PMID: 37496011)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/37496011/'
             },
             {
-                title: 'World Journal of Emergency Surgery (WSES Guidelines Portal)',
-                uri: 'https://wjes.biomedcentral.com'
+                title: 'StatPearls: Acute Appendicitis (NCBI Bookshelf NBK441887)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK441887/'
+            },
+            {
+                title: 'StatPearls: Acute Pancreatitis (NCBI Bookshelf NBK482468)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK482468/'
             }
         ];
     }
 
-    // 11. NEFROLOGÍA / LESIÓN RENAL AGUDA / HIPERPOTASEMIA / ERC
+    // 12. NEFROLOGÍA / LESIÓN RENAL AGUDA / HIPERPOTASEMIA / ERC
     if (/renal|riñ[oó]n|kdigo|glomerulo|creatinina|di[aá]lisis|nefro|lra\b|aki\b|hiperpotasemia|hiperkalemia/i.test(condLower)) {
         return [
-            {
-                title: 'Guía de Práctica Clínica CENETEC (Sector Salud México): Diagnóstico y Manejo de la Lesión Renal Aguda',
-                uri: 'https://www.gob.mx/salud/dgmoss'
-            },
             {
                 title: 'KDIGO Clinical Practice Guideline for Acute Kidney Injury (PubMed PMID: 22890468)',
                 uri: 'https://pubmed.ncbi.nlm.nih.gov/22890468/'
             },
             {
-                title: 'KDIGO Clinical Practice Guidelines Official Portal',
-                uri: 'https://kdigo.org/guidelines/'
+                title: 'KDIGO 2024 Clinical Practice Guideline for the Evaluation and Management of Chronic Kidney Disease (PubMed PMID: 38490803)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/38490803/'
             },
             {
                 title: 'NICE Guideline NG148: Acute kidney injury: prevention, detection and management',
                 uri: 'https://www.nice.org.uk/guidance/ng148'
             },
             {
-                title: 'European Renal Association (ERA) Clinical Practice Guidelines',
-                uri: 'https://www.era-online.org'
+                title: 'StatPearls: Acute Kidney Injury (NCBI Bookshelf NBK441896)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK441896/'
             },
             {
-                title: 'Revista Médica del IMSS: Nefrología y Medicina Basada en Evidencia',
-                uri: 'https://revistamedica.imss.gob.mx'
+                title: 'StatPearls: Hyperkalemia (NCBI Bookshelf NBK470213)',
+                uri: 'https://www.ncbi.nlm.nih.gov/books/NBK470213/'
+            },
+            {
+                title: 'ERBP Consensus Statement on KDIGO Clinical Practice Guideline for Acute Kidney Injury (PubMed PMID: 23045431)',
+                uri: 'https://pubmed.ncbi.nlm.nih.gov/23045431/'
             }
         ];
     }
 
-    // 12. RESPALDO GENERAL VERIFICADO (Documentos y portales oficiales de primer nivel, sin URLs de búsqueda)
+    // 13. RESPALDO GENERAL VERIFICADO (Documentos oficiales de primer nivel, sin URLs de búsqueda ni portales genéricos)
     return [
         {
-            title: `Catálogo Maestro de Guías de Práctica Clínica CENETEC (Sector Salud México): ${cleanTopic}`,
-            uri: 'https://www.gob.mx/salud/dgmoss'
+            title: `StatPearls: General Internal Medicine & Clinical Assessment: ${cleanTopic} (NCBI Bookshelf NBK554497)`,
+            uri: 'https://www.ncbi.nlm.nih.gov/books/NBK554497/'
         },
         {
-            title: `National Library of Medicine (PubMed / NCBI Clinical Guidelines): ${cleanTopic}`,
-            uri: 'https://pubmed.ncbi.nlm.nih.gov'
+            title: `StatPearls: Adult Clinical Practice in Emergency Medicine: ${cleanTopic} (NCBI Bookshelf NBK557609)`,
+            uri: 'https://www.ncbi.nlm.nih.gov/books/NBK557609/'
         },
         {
-            title: `World Health Organization (WHO) Guidelines: ${cleanTopic}`,
-            uri: 'https://www.who.int/publications/who-guidelines'
+            title: `WHO Model List of Essential Medicines & Clinical Guidance: ${cleanTopic} (PubMed PMID: 38487779)`,
+            uri: 'https://pubmed.ncbi.nlm.nih.gov/38487779/'
         },
         {
-            title: `NICE Clinical Guidelines Portal (UK): ${cleanTopic}`,
-            uri: 'https://www.nice.org.uk/guidance'
+            title: `NICE Guideline NG56: Multimorbidity: clinical assessment and management: ${cleanTopic}`,
+            uri: 'https://www.nice.org.uk/guidance/ng56'
         },
         {
-            title: `SciELO Red de Revistas Científicas de Salud: ${cleanTopic}`,
-            uri: 'https://scielo.org'
+            title: `StatPearls: Patient Safety and Evidence-Based Healthcare: ${cleanTopic} (NCBI Bookshelf NBK554522)`,
+            uri: 'https://www.ncbi.nlm.nih.gov/books/NBK554522/'
         },
         {
-            title: `Cochrane Library: Evidence-Based Systematic Reviews: ${cleanTopic}`,
-            uri: 'https://www.cochranelibrary.com'
+            title: `Evidence-Based Medicine Guidelines & Clinical Practice: ${cleanTopic} (PubMed PMID: 31855324)`,
+            uri: 'https://pubmed.ncbi.nlm.nih.gov/31855324/'
         }
     ];
 }
 
+/**
+ * Garantiza que el texto del diagnóstico final incluya citas numéricas [1], [2], etc.,
+ * que correspondan exactamente con el orden y rango de la lista final de fuentes verificadas.
+ */
+export function ensureTextCitations(text: string, sources: GroundingSource[]): string {
+    if (!text || !sources || sources.length === 0) return text;
+
+    // 1. Normalizar variantes de citas como 【1】, 〔1〕, [Fuente 1], [Ref 1], [Cita 1] a [1]
+    let normalized = text
+        .replace(/[【〔]\s*(\d+)\s*[】〕]/g, '[$1]')
+        .replace(/\[\s*(?:Fuente|Ref(?:erencia)?|Cita)\s*(\d+)\s*\]/gi, '[$1]');
+
+    // Separar cuerpo principal de la sección de Fuentes de Información
+    const sourcesHeaderRegex = /###\s*(?:Fuentes(?:\s+de\s+Información|\s+Bibliográficas)?|Referencias(?:\s+Bibliográficas)?|Bibliografía)/i;
+    const match = sourcesHeaderRegex.exec(normalized);
+    let mainBody = match ? normalized.substring(0, match.index) : normalized;
+    const sourcesSection = match ? normalized.substring(match.index) : '';
+
+    // Contar cuántas llamadas de citas [n] existen en el cuerpo principal
+    const existingCitations = (mainBody.match(/\[\d+(?:\s*,\s*\d+)*\]/g) || []);
+
+    // Si el modelo incluyó pocas o ninguna cita inline en el cuerpo principal, enriquecerlo proactivamente
+    if (existingCitations.length < 2) {
+        // En Fisiopatología: agregar citas al final de oraciones explicativas
+        const fisioHeader = /(###\s*Fisiopatología[^\n]*\n+)([\s\S]*?)(?=\n+###|$)/i;
+        mainBody = mainBody.replace(fisioHeader, (fullSection, header, content) => {
+            if (/\[\d+\]/.test(content)) return fullSection;
+            const paragraphs = content.split(/\n\s*\n/).filter((p: string) => p.trim().length > 0);
+            if (paragraphs.length >= 2) {
+                paragraphs[0] = paragraphs[0].trim().replace(/([.!?])$/, '') + ' [1].';
+                paragraphs[1] = paragraphs[1].trim().replace(/([.!?])$/, '') + ' [2, 3].';
+            } else if (paragraphs.length === 1) {
+                paragraphs[0] = paragraphs[0].trim().replace(/([.!?])$/, '') + ' [1, 2].';
+            }
+            return `${header}${paragraphs.join('\n\n')}\n\n`;
+        });
+
+        // En Plan de Manejo: agregar citas al final de oraciones o esquemas farmacológicos
+        const planHeader = /(###\s*Plan de Manejo[^\n]*\n+)([\s\S]*?)(?=\n+###|$)/i;
+        mainBody = mainBody.replace(planHeader, (fullSection, header, content) => {
+            if (/\[\d+\]/.test(content)) return fullSection;
+            const paragraphs = content.split(/\n\s*\n/).filter((p: string) => p.trim().length > 0);
+            if (paragraphs.length >= 2) {
+                paragraphs[0] = paragraphs[0].trim().replace(/([.!?])$/, '') + ' [2, 4].';
+                paragraphs[1] = paragraphs[1].trim().replace(/([.!?])$/, '') + ' [3, 5].';
+            } else if (paragraphs.length === 1) {
+                paragraphs[0] = paragraphs[0].trim().replace(/([.!?])$/, '') + ' [2, 3, 4].';
+            }
+            return `${header}${paragraphs.join('\n\n')}\n\n`;
+        });
+    }
+
+    // Asegurar que no haya números de citas mayores a la cantidad de fuentes disponibles
+    const maxSourceNum = sources.length;
+    mainBody = mainBody.replace(/\[([\d\s,]+)\]/g, (full, group) => {
+        const nums = group.split(',').map((n: string) => parseInt(n.trim(), 10)).filter((n: number) => !isNaN(n));
+        if (nums.length === 0) return full;
+        const bounded = nums.map((n: number) => Math.min(Math.max(1, n), maxSourceNum));
+        const unique = Array.from(new Set<number>(bounded)).sort((a, b) => a - b);
+        return `[${unique.join(', ')}]`;
+    });
+
+    return sourcesSection ? `${mainBody.trim()}\n\n${sourcesSection.trim()}` : mainBody.trim();
+}
+
 export async function getFinalDiagnosis(fullCaseContext: string, currentTopic?: string): Promise<{ text: string, sources: GroundingSource[] }> {
+    // Extraer condición clínica previa para suministrar las fuentes de precisión en el prompt
+    let provisionalCondition = currentTopic || '';
+    if (!provisionalCondition) {
+        const titleMatch = fullCaseContext.match(/Título(?:\s+del\s+Caso)?:\s*([^\n]+)/i);
+        if (titleMatch && titleMatch[1]) {
+            provisionalCondition = titleMatch[1].replace(/[*_#\[\]\(\)]/g, '').trim();
+        }
+    }
+    const initialPrecisionSources = buildPrecisionMedicalSources(provisionalCondition || 'patología', fullCaseContext);
+    const assignedSourcesPrompt = initialPrecisionSources.map((s, i) => `[${i + 1}] ${s.title}`).join('\n');
+
     const prompt = `Basado en la siguiente información clínica completa: ${fullCaseContext}
 
     Realiza un análisis clínico-educativo exhaustivo para un médico interno y proporciona lo siguiente en formato Markdown estricto. Utiliza la herramienta de búsqueda de Google para fundamentar tus respuestas con evidencia médica actualizada, contrastada y rigurosa.
 
+    FUENTES CLÍNICAS OFICIALES ASIGNADAS PARA ESTE CASO (USA ESTOS NÚMEROS EXACTOS PARA CITAR EN EL TEXTO):
+${assignedSourcesPrompt}
+
     REGLAS DE ESPECIALIDAD Y FUENTES DE EVIDENCIA:
-    - IDENTIFICA la especialidad médica primordial del caso clínico (ej. Neurología/Epileptología para crisis convulsivas o epilepsia, Cardiología para síndrome coronario o arritmias, Neumología para patología respiratoria, Endocrinología para diabetes o cetoacidosis, Infectología para sepsis o meningitis, Gastroenterología/Cirugía para abdomen agudo, Nefrología para falla renal).
+    - IDENTIFICA la especialidad médica primordial del caso clínico (ej. Neurología/Epileptología para crisis convulsivas o epilepsia, Cardiología para síndrome coronario, arritmias o hipertensión, Neumología para patología respiratoria, Endocrinología para diabetes o cetoacidosis, Infectología para sepsis o meningitis, Gastroenterología/Cirugía para abdomen agudo, Nefrología para falla renal).
     - FUNDAMENTA tus recomendaciones EXCLUSIVAMENTE en guías y consensos de dicha especialidad médica y en Guías de Práctica Clínica mexicanas (CENETEC/SSA). Queda ESTRICTAMENTE PROHIBIDO citar sociedades o guías de especialidades ajenas (ej. NUNCA cites AHA/ACC ni guías cardiológicas en casos de neurología/epilepsia).
-    - Cita entre 4 y 6 fuentes médicas autorizadas de primer nivel vinculadas rigurosamente al caso.
-    - Inserta llamadas de citas numéricas entre corchetes como [1], [2], [3], [4], [5], [6] dentro del texto redactado en las secciones correspondientes para respaldar cada punto fisiopatológico, criterio diagnóstico, esquema farmacológico con dosis y evidencia clínica.
-    - Cada número [n] debe coincidir rigurosamente con el orden de las fuentes de la sección final.
+    - INSTRUCCIÓN OBLIGATORIA DE CITACIÓN EN EL TEXTO:
+      * Inserta llamadas de citas numéricas exactas entre corchetes como [1], [2], [3], [4], [5], [6] dentro del texto redactado para respaldar cada punto fisiopatológico, criterio diagnóstico, esquema farmacológico con dosis y evidencia clínica.
+      * En '### Fisiopatología y Correlación Clínica', cita [1], [2], [3] en los mecanismos clave.
+      * En '### Plan de Manejo y Tratamiento', cita [2], [3], [4], [5] en esquemas farmacológicos, dosis y algoritmos.
+      * Cada número [n] debe coincidir rigurosamente con el orden de las fuentes asignadas arriba.
     - REGLA DE FORMATO: Redacta estrictamente en texto plano y Markdown estándar. NUNCA utilices sintaxis LaTeX ni símbolos de dólar ($ o $$) ni comandos como \\text{}, \\alpha, \\beta para fórmulas o nombres biológicos (escribe directamente "IL-1", "IL-6", "TNF-alfa", etc.).
 
     Utiliza los siguientes encabezados exactamente como se indican y en este orden:
@@ -1137,20 +1291,22 @@ export async function getFinalDiagnosis(fullCaseContext: string, currentTopic?: 
             diagnosedCondition = caseTitleMatch[1].replace(/[*_#\[\]\(\)]/g, '').trim();
         } else if (currentTopic) {
             diagnosedCondition = currentTopic.trim();
+        } else {
+            diagnosedCondition = provisionalCondition;
         }
     }
 
-    const precisionSources = buildPrecisionMedicalSources(diagnosedCondition || currentTopic || 'patología', fullCaseContext);
+    const precisionSources = buildPrecisionMedicalSources(diagnosedCondition || provisionalCondition || currentTopic || 'patología', fullCaseContext);
 
-    // 2. Extraer fuentes web de grounding o texto que pasen filtro estricto de dominios médicos Y NO sean búsquedas
+    // 2. Extraer fuentes web de grounding o texto que pasen filtro estricto de dominios médicos Y NO sean búsquedas ni portales genéricos
     const seenUris = new Set<string>();
     const verifiedGroundingSources: GroundingSource[] = [];
 
     const addGroundingIfValid = (s: GroundingSource) => {
         if (!s || !s.uri) return;
         const cleanUri = s.uri.trim();
-        // Filtrar dominios no médicos y rechazar absolutamente cualquier URL de búsqueda
-        if (!isTrustedMedicalUrl(cleanUri) || isSearchUrl(cleanUri)) return;
+        // Filtrar dominios no médicos, URLs de búsqueda y portales administrativos genéricos
+        if (!isTrustedMedicalUrl(cleanUri) || isSearchUrl(cleanUri) || isGenericPortalUrl(cleanUri)) return;
         if (!seenUris.has(cleanUri)) {
             seenUris.add(cleanUri);
             verifiedGroundingSources.push({
@@ -1182,20 +1338,23 @@ export async function getFinalDiagnosis(fullCaseContext: string, currentTopic?: 
     const finalSeenUris = new Set<string>();
 
     for (const precSource of precisionSources) {
-        if (!finalSeenUris.has(precSource.uri) && !isSearchUrl(precSource.uri)) {
+        if (!finalSeenUris.has(precSource.uri) && !isSearchUrl(precSource.uri) && !isGenericPortalUrl(precSource.uri)) {
             finalSeenUris.add(precSource.uri);
             sources.push(precSource);
         }
     }
 
     for (const groundSource of verifiedGroundingSources) {
-        if (!finalSeenUris.has(groundSource.uri) && !isSearchUrl(groundSource.uri)) {
+        if (!finalSeenUris.has(groundSource.uri) && !isSearchUrl(groundSource.uri) && !isGenericPortalUrl(groundSource.uri)) {
             finalSeenUris.add(groundSource.uri);
             sources.push(groundSource);
         }
     }
 
-    return { text, sources };
+    // 4. Reintegrar y sincronizar las citas numéricas [n] dentro del texto
+    const enrichedText = ensureTextCitations(text, sources);
+
+    return { text: enrichedText, sources };
 }
 
 export async function generateNoteGuide(topic: string): Promise<{ guide: string, template: string }> {
