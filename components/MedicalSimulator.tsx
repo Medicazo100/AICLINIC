@@ -35,8 +35,8 @@ const getSourceDomain = (uri: string) => {
     try {
         const url = new URL(uri);
         const host = url.hostname.replace(/^www\./, '');
-        if (host.includes('cenetec') || host.includes('gob.mx')) {
-            return 'CENETEC / Salud México (GPC)';
+        if (host.includes('gob.mx')) {
+            return 'Salud México / Guías Oficiales';
         }
         if (host.includes('unam.mx')) {
             return 'UNAM / Medicina (México)';
